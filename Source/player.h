@@ -36,7 +36,7 @@ constexpr int MaxCharacterLevel = 50;
 constexpr uint8_t MaxSpellLevel = 15;
 constexpr int PlayerNameLength = 32;
 
-constexpr size_t NumHotkeys = 12;
+constexpr size_t NumHotkeys = 32;
 constexpr int BaseHitChance = 50;
 
 /** Walking directions */
