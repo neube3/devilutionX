@@ -1071,6 +1071,9 @@ bool DoSpell(Player &player)
 	if (player.AnimInfo.isLastFrame()) {
 		StartStand(player, player._pdir);
 		ClearStateVariables(player);
+
+		AutoPickup(player);
+
 		return true;
 	}
 
