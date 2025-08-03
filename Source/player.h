@@ -990,4 +990,3 @@ void InitDungMsgs(Player &player);
 void PlayDungMsgs();
 
 } // namespace devilution
-
