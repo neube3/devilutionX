@@ -3,7 +3,12 @@
 #include <array>
 #include <cstdint>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_pixels.h>
+#else
 #include <SDL.h>
+#endif
+
 #include <benchmark/benchmark.h>
 
 #include "utils/palette_kd_tree.hpp"
@@ -51,7 +56,7 @@ void BM_FindNearestNeighbor(benchmark::State &state)
 {
 	std::array<SDL_Color, 256> palette;
 	GeneratePalette(palette.data());
-	PaletteKdTree tree(palette.data(), -1, -1);
+	const PaletteKdTree tree(palette.data(), -1, -1);
 
 	for (auto _ : state) {
 		for (int r = 0; r < 256; ++r) {

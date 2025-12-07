@@ -4,6 +4,12 @@
 #include <random>
 #include <string>
 
+#ifdef USE_SDL3
+#include <SDL3/SDL_timer.h>
+#else
+#include <SDL.h>
+#endif
+
 #include <sol/sol.hpp>
 
 #include "cursor.h"
@@ -135,8 +141,8 @@ std::string DebugSpawnUniqueItem(std::string itemName)
 	if (!foundUnique) return "No unique item found!";
 
 	_item_indexes uniqueBaseIndex = IDI_GOLD;
-	for (std::underlying_type_t<_item_indexes> j = IDI_GOLD; j <= IDI_LAST; j++) {
-		if (!IsItemAvailable(j))
+	for (size_t j = 0; j < AllItemsList.size(); j++) {
+		if (!IsItemAvailable(static_cast<int>(j)))
 			continue;
 		if (AllItemsList[j].iItemId == uniqueItem.UIItemId) {
 			uniqueBaseIndex = static_cast<_item_indexes>(j);

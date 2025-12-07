@@ -34,6 +34,7 @@ set(libdevilutionx_SRCS
   sync.cpp
   textdat.cpp
   tmsg.cpp
+  townerdat.cpp
   towners.cpp
   track.cpp
 
@@ -116,6 +117,7 @@ set(libdevilutionx_SRCS
   lua/modules/i18n.cpp
   lua/modules/items.cpp
   lua/modules/log.cpp
+  lua/modules/monsters.cpp
   lua/modules/player.cpp
   lua/modules/render.cpp
   lua/modules/towners.cpp
@@ -127,6 +129,7 @@ set(libdevilutionx_SRCS
   panels/console.cpp
   panels/info_box.cpp
   panels/mainpanel.cpp
+  panels/partypanel.cpp
   panels/spell_book.cpp
   panels/spell_icons.cpp
   panels/spell_list.cpp
@@ -250,6 +253,14 @@ target_link_dependencies(libdevilutionx_padmapper PUBLIC
   libdevilutionx_options
 )
 
+add_devilutionx_object_library(libdevilutionx_palette_kd_tree
+  utils/palette_kd_tree.cpp
+)
+target_link_dependencies(libdevilutionx_palette_kd_tree PUBLIC
+  DevilutionX::SDL
+  libdevilutionx_strings
+)
+
 add_devilutionx_object_library(libdevilutionx_paths
   utils/paths.cpp
 )
@@ -335,6 +346,7 @@ add_devilutionx_object_library(libdevilutionx_game_mode
 )
 target_link_dependencies(libdevilutionx_game_mode PRIVATE
   tl
+  magic_enum::magic_enum
   libdevilutionx_options
 )
 
@@ -364,6 +376,7 @@ add_devilutionx_object_library(libdevilutionx_init
   init.cpp
 )
 target_link_dependencies(libdevilutionx_init PUBLIC
+  magic_enum::magic_enum
   libdevilutionx_assets
   libdevilutionx_config
   libdevilutionx_mpq
@@ -452,7 +465,9 @@ add_devilutionx_object_library(libdevilutionx_lighting
 target_link_dependencies(libdevilutionx_lighting PUBLIC
   DevilutionX::SDL
   fmt::fmt
+  magic_enum::magic_enum
   tl
+  unordered_dense::unordered_dense
   libdevilutionx_vision
 )
 
@@ -470,6 +485,7 @@ add_devilutionx_object_library(libdevilutionx_items
 )
 target_link_dependencies(libdevilutionx_items PUBLIC
   DevilutionX::SDL
+  sol2::sol2
   tl
   libdevilutionx_headless_mode
   libdevilutionx_sound
@@ -524,7 +540,10 @@ add_devilutionx_object_library(libdevilutionx_monster
 target_link_dependencies(libdevilutionx_monster
   PUBLIC
   DevilutionX::SDL
+  magic_enum::magic_enum
+  sol2::sol2
   tl
+  unordered_dense::unordered_dense
   libdevilutionx_game_mode
   libdevilutionx_headless_mode
   libdevilutionx_sound
@@ -538,7 +557,7 @@ add_devilutionx_object_library(libdevilutionx_palette_blending
 )
 target_link_dependencies(libdevilutionx_palette_blending PUBLIC
   DevilutionX::SDL
-  fmt::fmt
+  libdevilutionx_palette_kd_tree
   libdevilutionx_strings
 )
 
@@ -585,6 +604,7 @@ add_devilutionx_object_library(libdevilutionx_options
 target_link_dependencies(libdevilutionx_options PUBLIC
   DevilutionX::SDL
   fmt::fmt
+  magic_enum::magic_enum
   tl
   unordered_dense::unordered_dense
   libdevilutionx_controller_buttons
@@ -624,6 +644,7 @@ target_link_dependencies(libdevilutionx_player
   PUBLIC
   DevilutionX::SDL
   fmt::fmt
+  magic_enum::magic_enum
   tl
   unordered_dense::unordered_dense
   libdevilutionx_game_mode
@@ -689,6 +710,7 @@ add_devilutionx_object_library(libdevilutionx_txtdata
   data/file.cpp
   data/parser.cpp
   data/record_reader.cpp
+  data/value_reader.cpp
 )
 target_link_dependencies(libdevilutionx_txtdata PUBLIC
   fmt::fmt
@@ -710,17 +732,37 @@ if(NOSOUND)
     effects_stubs.cpp
     engine/sound_stubs.cpp
   )
+  target_link_dependencies(libdevilutionx_sound PUBLIC
+    DevilutionX::SDL
+    fmt::fmt
+    magic_enum::magic_enum
+    tl
+    unordered_dense::unordered_dense
+    libdevilutionx_options
+    libdevilutionx_random
+    libdevilutionx_sdl2_to_1_2_backports
+  )
 else()
   add_devilutionx_object_library(libdevilutionx_sound
     effects.cpp
     engine/sound.cpp
-    utils/push_aulib_decoder.cpp
     utils/soundsample.cpp
   )
+  if(USE_SDL3)
+    target_link_dependencies(libdevilutionx_sound PUBLIC
+      SDL3_mixer::SDL3_mixer
+    )
+  else()
+    target_sources(libdevilutionx_sound PRIVATE
+      utils/push_aulib_decoder.cpp)
+    target_link_dependencies(libdevilutionx_sound PUBLIC
+      SDL_audiolib::SDL_audiolib
+    )
+  endif()
   target_link_dependencies(libdevilutionx_sound PUBLIC
     DevilutionX::SDL
-    SDL_audiolib::SDL_audiolib
     fmt::fmt
+    magic_enum::magic_enum
     tl
     unordered_dense::unordered_dense
     libdevilutionx_options
@@ -765,8 +807,8 @@ if(USE_SDL1)
     utils/sdl2_to_1_2_backports.cpp
   )
   target_link_dependencies(libdevilutionx_sdl2_to_1_2_backports PRIVATE
+    libdevilutionx_strings
     libdevilutionx_utils_console
-    fmt::fmt
   )
   target_link_libraries(DevilutionX::SDL INTERFACE
     libdevilutionx_sdl2_to_1_2_backports
@@ -837,20 +879,25 @@ if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG)
   target_link_dependencies(libdevilutionx_surface_to_png
     PUBLIC
     DevilutionX::SDL
-    SDL2::SDL2_image
     tl
     libdevilutionx_surface
   )
+  if(USE_SDL3)
+    target_link_dependencies(libdevilutionx_surface_to_png PUBLIC SDL3_image::SDL3_image)
+    target_compile_definitions(libdevilutionx_surface_to_png INTERFACE USE_SDL3)
+  else()
+    target_link_dependencies(libdevilutionx_surface_to_png PUBLIC SDL2::SDL2_image)
+  endif()
 endif()
 
 add_devilutionx_object_library(libdevilutionx ${libdevilutionx_SRCS})
 target_include_directories(libdevilutionx PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_dependencies(libdevilutionx PUBLIC
-  Threads::Threads
   DevilutionX::SDL
   fmt::fmt
   libsmackerdec
   ${LUA_LIBRARIES}
+  magic_enum::magic_enum
   sol2::sol2
   tl
   unordered_dense::unordered_dense
@@ -899,6 +946,9 @@ target_link_dependencies(libdevilutionx PUBLIC
   libdevilutionx_utf8
   libdevilutionx_utils_console
 )
+if(NOT TARGET_PLATFORM STREQUAL "dos")
+  target_link_dependencies(libdevilutionx PUBLIC Threads::Threads)
+endif()
 if(DEVILUTIONX_SCREENSHOT_FORMAT STREQUAL DEVILUTIONX_SCREENSHOT_FORMAT_PNG)
   target_link_dependencies(libdevilutionx PUBLIC libdevilutionx_surface_to_png)
 endif()
@@ -938,7 +988,11 @@ if(SCREEN_READER_INTEGRATION)
   endif()
 endif()
 
-if(NOT USE_SDL1)
+if(USE_SDL1)
+  # No need for SDL_image
+elseif(USE_SDL3)
+  target_link_libraries(libdevilutionx PUBLIC SDL3_image::SDL3_image)
+else()
   target_link_libraries(libdevilutionx PUBLIC SDL2::SDL2_image)
 endif()
 
@@ -951,7 +1005,7 @@ if(NOT NONET)
   endif()
 endif()
 
-if(NOT NOSOUND)
+if(NOT NOSOUND AND NOT USE_SDL3)
   target_link_libraries(libdevilutionx PUBLIC SDL_audiolib::SDL_audiolib)
 endif()
 
